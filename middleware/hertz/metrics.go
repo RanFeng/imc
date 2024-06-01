@@ -34,7 +34,7 @@ var (
 
 func init() {
 	prometheus.MustRegister(counter)
-	pushServer = push.New("http://localhost:18974", "common_metrics")
+	pushServer = push.New("http://localhost:18976", "common_metrics")
 	psm = os.Getenv("PSM")
 }
 
