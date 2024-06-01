@@ -3,6 +3,7 @@ package hertz
 import (
 	"context"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/RanFeng/ilog"
@@ -13,28 +14,29 @@ import (
 )
 
 var (
+	keys    = []string{"psm", "method", "path", "status"}
 	counter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "counter",
-		Help: "A simple counter metric",
-	}, []string{"psm", "method", "path", "status", "log_id"})
+		Name: "imc_middleware_hertz_common_metrics_counter",
+		Help: "用于记录接口请求量",
+	}, keys)
 
 	latency = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name: "latency",
-		Help: "Duration of HTTP requests",
+		Name: "imc_middleware_hertz_common_metrics_latency",
+		Help: "用于记录接口请求时延",
 		Objectives: map[float64]float64{
 			0.5:  0.1,  // 50% 分位数,最大 10% 误差
 			0.9:  0.05, // 90% 分位数,最大 5% 误差
 			0.99: 0.01, // 99% 分位数,最大 1% 误差
 		},
-	}, []string{"psm", "method", "path", "status", "log_id"})
+	}, keys)
 
 	pushServer *push.Pusher
 	psm        string
 )
 
 func init() {
-	prometheus.MustRegister(counter)
-	pushServer = push.New("http://localhost:18974", "common_metrics")
+	pushServer = push.New("http://localhost:18976", "common_metrics").
+		Collector(counter).Collector(latency)
 	psm = os.Getenv("PSM")
 }
 
@@ -43,19 +45,14 @@ func CommonMetrics() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		start := time.Now()
 		c.Next(ctx)
-		logID, _ := ctx.Value(LogIDKey).(string)
 		vList := []string{psm,
 			string(c.Method()),
 			string(c.Path()),
-			string(rune(c.Response.Header.StatusCode())),
-			logID}
+			strconv.Itoa(c.Response.Header.StatusCode())}
 		counter.WithLabelValues(vList...).Inc()
 		latency.WithLabelValues(vList...).Observe(float64(time.Since(start).Milliseconds()))
 
-		err := pushServer.
-			Collector(counter).
-			Collector(latency).
-			Push()
+		err := pushServer.Push()
 		if err != nil {
 			ilog.EventWarn(ctx, "push_common_metrics_fail", "v_list", vList, "err", err)
 		}
