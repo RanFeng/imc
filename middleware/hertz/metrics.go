@@ -14,13 +14,13 @@ import (
 
 var (
 	counter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "counter",
-		Help: "A simple counter metric",
+		Name: "imc_middleware_hertz_common_metrics_counter",
+		Help: "用于记录接口请求量",
 	}, []string{"psm", "method", "path", "status", "log_id"})
 
 	latency = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name: "latency",
-		Help: "Duration of HTTP requests",
+		Name: "imc_middleware_hertz_common_metrics_latency",
+		Help: "用于记录接口请求时延",
 		Objectives: map[float64]float64{
 			0.5:  0.1,  // 50% 分位数,最大 10% 误差
 			0.9:  0.05, // 90% 分位数,最大 5% 误差
@@ -34,7 +34,7 @@ var (
 
 func init() {
 	prometheus.MustRegister(counter)
-	pushServer = push.New("http://localhost:18974", "common_metrics")
+	pushServer = push.New("http://localhost:18976", "common_metrics")
 	psm = os.Getenv("PSM")
 }
 

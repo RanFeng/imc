@@ -3,13 +3,13 @@ module github.com/RanFeng/imc
 go 1.22.1
 
 require (
+	github.com/RanFeng/ilog v1.0.1
 	github.com/RanFeng/logid v1.0.0
 	github.com/cloudwego/hertz v0.9.0
 	github.com/prometheus/client_golang v1.19.1
 )
 
 require (
-	github.com/RanFeng/ilog v1.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bytedance/go-tagexpr/v2 v2.9.2 // indirect
 	github.com/bytedance/gopkg v0.0.0-20220413063733-65bf48ffb3a7 // indirect
