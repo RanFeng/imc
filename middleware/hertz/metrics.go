@@ -3,6 +3,7 @@ package hertz
 import (
 	"context"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/RanFeng/ilog"
@@ -14,13 +15,13 @@ import (
 
 var (
 	counter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "counter",
-		Help: "A simple counter metric",
+		Name: "imc_middleware_hertz_common_metrics_counter",
+		Help: "用于记录接口请求量",
 	}, []string{"psm", "method", "path", "status", "log_id"})
 
 	latency = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name: "latency",
-		Help: "Duration of HTTP requests",
+		Name: "imc_middleware_hertz_common_metrics_latency",
+		Help: "用于记录接口请求时延",
 		Objectives: map[float64]float64{
 			0.5:  0.1,  // 50% 分位数,最大 10% 误差
 			0.9:  0.05, // 90% 分位数,最大 5% 误差
@@ -33,8 +34,8 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(counter)
-	pushServer = push.New("http://localhost:18974", "common_metrics")
+	pushServer = push.New("http://localhost:18976", "common_metrics").
+		Collector(counter).Collector(latency)
 	psm = os.Getenv("PSM")
 }
 
@@ -47,15 +48,12 @@ func CommonMetrics() app.HandlerFunc {
 		vList := []string{psm,
 			string(c.Method()),
 			string(c.Path()),
-			string(rune(c.Response.Header.StatusCode())),
+			strconv.Itoa(c.Response.Header.StatusCode()),
 			logID}
 		counter.WithLabelValues(vList...).Inc()
 		latency.WithLabelValues(vList...).Observe(float64(time.Since(start).Milliseconds()))
 
-		err := pushServer.
-			Collector(counter).
-			Collector(latency).
-			Push()
+		err := pushServer.Push()
 		if err != nil {
 			ilog.EventWarn(ctx, "push_common_metrics_fail", "v_list", vList, "err", err)
 		}
