@@ -47,7 +47,7 @@ func CommonMetrics() app.HandlerFunc {
 		c.Next(ctx)
 		vList := []string{psm,
 			string(c.Method()),
-			string(c.Path()),
+			c.FullPath(),
 			strconv.Itoa(c.Response.Header.StatusCode())}
 		counter.WithLabelValues(vList...).Inc()
 		latency.WithLabelValues(vList...).Observe(float64(time.Since(start).Milliseconds()))
